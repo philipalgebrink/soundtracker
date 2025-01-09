@@ -27,21 +27,46 @@ const updateQuery = () => {
   emit('update:query', query.value); // Emit the input event with the query value
 };
 
-const handleClick = () => {
+const handleClick = async () => {
   const token = localStorage.getItem('spotify_access_token');
+  
   if (!token) {
-    // Redirect to Spotify login
-    const clientId = '612d7ae5a99f4f25b49f74b777ea6a42';
-    const redirectUri = 'http://localhost:3000/callback';
-    const scope = 'user-read-private user-read-email';
-    const spotifyAuthUrl = `https://accounts.spotify.com/authorize?response_type=code&client_id=${clientId}&scope=${encodeURIComponent(
-      scope
-    )}&redirect_uri=${encodeURIComponent(redirectUri)}`;
-    window.location.href = spotifyAuthUrl;
-  } else {
-    // Expand search bar
-    isExpanded.value = true;
+    redirectToSpotifyLogin();
+    return;
   }
+
+  // Optional: Check token validity before using it
+  const isTokenValid = await verifySpotifyToken(token);
+  if (!isTokenValid) {
+    redirectToSpotifyLogin();
+    return;
+  }
+
+  // Expand search bar
+  console.log("Token found. Expanding search bar...");
+  isExpanded.value = true;
+};
+
+const verifySpotifyToken = async (token) => {
+  try {
+    const response = await fetch('https://api.spotify.com/v1/me', {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    return response.ok; // Returns true if the token is valid
+  } catch (error) {
+    console.error('Error verifying token:', error);
+    return false;
+  }
+};
+
+const redirectToSpotifyLogin = () => {
+  const clientId = '612d7ae5a99f4f25b49f74b777ea6a42';
+  const redirectUri = 'http://localhost:3000/callback';
+  const scope = 'user-read-private user-read-email';
+  const spotifyAuthUrl = `https://accounts.spotify.com/authorize?response_type=code&client_id=${clientId}&scope=${encodeURIComponent(
+    scope
+  )}&redirect_uri=${encodeURIComponent(redirectUri)}`;
+  window.location.href = spotifyAuthUrl;
 };
 </script>
 
