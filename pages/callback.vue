@@ -1,15 +1,14 @@
 <template>
-  <div>
+  <div class="callback-container">
     <h1>Processing Spotify Authorization...</h1>
-    <p v-if="error">Error: {{ error }}</p>
-    <p v-else-if="loading">Exchanging token...</p>
-    <p v-else>Success! Access token exchanged.</p>
+    <p v-if="error" class="error">Error: {{ error }}</p>
+    <p v-else-if="loading" class="loading">Exchanging token...</p>
+    <p v-else class="success">Success! Access token exchanged.</p>
+    <LoadingScreen />
   </div>
 </template>
 
 <script setup>
-import { useRouter, useRoute } from 'vue-router';
-import { ref, onMounted } from 'vue';
 
 const route = useRoute();
 const router = useRouter();
@@ -21,13 +20,12 @@ onMounted(async () => {
   const code = route.query.code;
 
   if (!code) {
-    error.value = 'Authorization code is missing.';
-    loading.value = false;
+    handleError('Authorization code is missing.');
     return;
   }
 
   try {
-    // Exchange the code for an access token
+    // Exchange the authorization code for an access token
     const res = await fetch('/api/spotify-token', {
       method: 'POST',
       headers: {
@@ -41,22 +39,54 @@ onMounted(async () => {
 
     if (!res.ok) {
       const message = await res.text();
-      throw new Error(message);
+      throw new Error(message || 'Failed to exchange token with Spotify.');
     }
 
     const data = await res.json();
     console.log('Access Token Response:', data);
 
-    // Save the access token (optional)
+    // Save the access token to localStorage
     localStorage.setItem('spotify_access_token', data.access_token);
 
+    // Update loading state
     loading.value = false;
-    // Redirect to home or a success page
+
+    // Redirect to home or another page
     router.push('/');
   } catch (err) {
-    error.value = err.message;
-    loading.value = false;
-    console.error('Error:', err);
+    handleError(err.message || 'An unexpected error occurred.');
   }
 });
+
+const handleError = (message) => {
+  error.value = message;
+  loading.value = false;
+  console.error('Error:', message);
+};
 </script>
+
+<style scoped>
+.callback-container {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+  font-family: Arial, sans-serif;
+  text-align: center;
+}
+
+.error {
+  color: red;
+  margin-bottom: 25px;
+}
+
+.loading {
+  color: #555;
+}
+
+.success {
+  color: green;
+  margin-bottom: 25px;
+}
+</style>

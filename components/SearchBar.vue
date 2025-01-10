@@ -15,7 +15,6 @@
 </template>
 
 <script setup>
-import { ref } from 'vue';
 
 // Emit definition
 const emit = defineEmits(['update:query']);
